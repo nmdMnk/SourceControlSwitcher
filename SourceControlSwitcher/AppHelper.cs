@@ -37,6 +37,8 @@ namespace SourceControlSwitcher
 
             // ADD TO custom Output pane
             IVsOutputWindow outWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+            if (outWindow == null) return;
+
             Guid customGuid = new Guid(GuidList.GuidPkgString);
             IVsOutputWindowPane customPane = null;
             outWindow.GetPane(ref customGuid, out customPane);
@@ -46,6 +48,8 @@ namespace SourceControlSwitcher
                 outWindow.CreatePane(ref customGuid, customTitle, 1, 1);
                 outWindow.GetPane(ref customGuid, out customPane);
             }
+            if (customPane == null) return;
+
             customPane.Activate(); // Brings this pane into view
             //customPane.OutputString(msg);
             customPane.OutputStringThreadSafe(msg);

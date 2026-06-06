@@ -33,6 +33,9 @@ namespace SourceControlSwitcher
 
         private static void AddTask(string message, TaskErrorCategory category)
         {
+            if (_errorListProvider == null)
+                return;
+
             _errorListProvider.Tasks.Add(new ErrorTask
             {
                 Category = TaskCategory.User,

@@ -38,7 +38,11 @@ namespace SourceControlSwitcher
         public static readonly string[] VSHGPackageIds = { "84a06d4f-da93-4015-a822-6b3d1b6d2756" };
         public const string VSHGProviderId = VisualHGSccProviderId;
 
-        public static readonly string[] P4VSPackageIds = { "8d316614-311a-48f4-85f7-df7020f62357" };
+        public static readonly string[] P4VSPackageIds =
+        {
+            "6c2c3283-424c-44b2-b1a7-b12d635de7cf", // P4VS 2025+
+            "8d316614-311a-48f4-85f7-df7020f62357"  // Older P4VS
+        };
         public const string P4VSProviderId = "fda934f4-0492-4f67-a6eb-cbe0953649f0";
 
         //TODO: at this point, just guessing about these ids, no success yet...
@@ -174,6 +178,8 @@ namespace SourceControlSwitcher
                 case SccProvider.HgSccPackage:
                 case SccProvider.VSHG:
                     return RcsType.Mercurial;
+                case SccProvider.P4VS:
+                    return RcsType.Perforce;
                 case SccProvider.SourceGearVaultStandard:
                 case SccProvider.SourceGearVaultProfessional:
                     return RcsType.SourceGearVault;

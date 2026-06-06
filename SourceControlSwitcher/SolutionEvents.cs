@@ -54,6 +54,11 @@ namespace SourceControlSwitcher
         {
             //SetSCC(_DTE2.Solution.FullName);
             AppHelper.Output("OnAfterOpenSolution");
+            if (!string.IsNullOrWhiteSpace(_DTE2?.Solution?.FullName))
+            {
+                SetSCC(_DTE2.Solution.FullName);
+            }
+
             return VSConstants.S_OK;
         }
 
@@ -164,51 +169,56 @@ namespace SourceControlSwitcher
             return VSConstants.S_OK;
         }
 
+        private static void EnsureSourceControlProvider(RcsType detectedRcsType)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (GetLoadedRcsType() != detectedRcsType)
+                MainSite.RegisterPrimarySourceControlProvider(detectedRcsType);
+
+            _CurrentSolutionRcsType = detectedRcsType;
+        }
+
         public RcsType SetSCC(string pszSolutionFilename)
         {
+            if (string.IsNullOrWhiteSpace(pszSolutionFilename))
+            {
+                return _CurrentSolutionRcsType;
+            }
+
             DirectoryInfo solutionDir = new DirectoryInfo(Path.GetDirectoryName(pszSolutionFilename));
             DirectoryInfo currdir = solutionDir;
-            var oldRcsType = _CurrentSolutionRcsType;
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            bool markerDetected = false;
+
             while (true)
             {
                 if (Directory.Exists(Path.Combine(currdir.FullName, GIT_DIR)))
                 {
-                    if (_CurrentSolutionRcsType != RcsType.Git)
-                    {
-                        MainSite.RegisterPrimarySourceControlProvider(RcsType.Git);
-                        _CurrentSolutionRcsType = RcsType.Git;
-                    }
+                    markerDetected = true;
+                    EnsureSourceControlProvider(RcsType.Git);
                     break;
                 }
 
                 if (Directory.Exists(Path.Combine(currdir.FullName, MERCURIAL_DIR)))
                 {
-                    if (_CurrentSolutionRcsType != RcsType.Mercurial)
-                    {
-                        MainSite.RegisterPrimarySourceControlProvider(RcsType.Mercurial);
-                        _CurrentSolutionRcsType = RcsType.Mercurial;
-                    }
+                    markerDetected = true;
+                    EnsureSourceControlProvider(RcsType.Mercurial);
                     break;
                 }
 
                 if (Directory.Exists(Path.Combine(currdir.FullName, SVN_DIR)))
                 {
-                    if (_CurrentSolutionRcsType != RcsType.Subversion)
-                    {
-                        MainSite.RegisterPrimarySourceControlProvider(RcsType.Subversion);
-                        _CurrentSolutionRcsType = RcsType.Subversion;
-                    }
+                    markerDetected = true;
+                    EnsureSourceControlProvider(RcsType.Subversion);
                     break;
                 }
 
                 if(Directory.Exists(Path.Combine(currdir.FullName, SOURCEGEAR_VAULT_DIR)))
                 {
-                    if(_CurrentSolutionRcsType != RcsType.SourceGearVault)
-                    {
-                        MainSite.RegisterPrimarySourceControlProvider(RcsType.SourceGearVault);
-                        _CurrentSolutionRcsType = RcsType.SourceGearVault;
-                    }
+                    markerDetected = true;
+                    EnsureSourceControlProvider(RcsType.SourceGearVault);
                     break;
                 }
 
@@ -219,12 +229,17 @@ namespace SourceControlSwitcher
                 currdir = currdir.Parent;
             }
 
-            if (_CurrentSolutionRcsType == oldRcsType 
-                && _CurrentSolutionRcsType != RcsType.Perforce 
-                && IsPerforce(solutionDir))
+            if (!markerDetected)
             {
-                MainSite.RegisterPrimarySourceControlProvider(RcsType.Perforce);
-                _CurrentSolutionRcsType = RcsType.Perforce;
+                bool isPerforce = IsPerforce(solutionDir);
+                if (isPerforce)
+                {
+                    EnsureSourceControlProvider(RcsType.Perforce);
+                }
+                else
+                {
+                    _CurrentSolutionRcsType = RcsType.Unknown;
+                }
             }
 
             return _CurrentSolutionRcsType;
